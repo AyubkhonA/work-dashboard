@@ -40,6 +40,17 @@ body {
 .neg { color: var(--red); }
 .warn { color: var(--amber); }
 
+/* subtle, theme-matched scrollbars (replace the bright OS default) */
+* { scrollbar-width: thin; scrollbar-color: #2b3a4a transparent; }
+::-webkit-scrollbar { width: 10px; height: 10px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb {
+  background: #2b3a4a; border-radius: 8px;
+  border: 3px solid transparent; background-clip: padding-box;
+}
+::-webkit-scrollbar-thumb:hover { background: #3c4f63; background-clip: padding-box; }
+::-webkit-scrollbar-corner { background: transparent; }
+
 /* ---------- shell ---------- */
 .term {
   position: relative;
@@ -300,7 +311,7 @@ body {
 /* let grid/flex children shrink below content min-content so wide tables scroll inside tbl-wrap instead of forcing page overflow */
 .hero-grid > *, .hero-right > * { min-width: 0; }
 .hero-cards { display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; }
-.barscroll { max-height: 560px; overflow-y: auto; }
+.barscroll { max-height: 560px; overflow-y: auto; padding-right: 10px; }
 
 /* ---------- content ---------- */
 .content { padding: 18px; max-width: 1400px; width: 100%; margin: 0 auto; }
