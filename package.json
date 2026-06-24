@@ -1,0 +1,14 @@
+{
+  "name": "ortho-statement",
+  "version": "1.0.0",
+  "description": "Advanced Ortho Lab monthly statement — parse invoices/AR, apply per-office tax, dark-terminal dashboard",
+  "scripts": {
+    "parse": "python3 tools/parse_may.py",
+    "dev": "cd client && npm run dev",
+    "build": "cd client && npm install && npm run build"
+  },
+  "dependencies": {
+    "@netlify/blobs": "^8.1.0"
+  },
+  "license": "MIT"
+}

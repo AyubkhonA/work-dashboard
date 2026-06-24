@@ -1,0 +1,4 @@
+
+# local env (may hold secrets)
+.env.local
+.env*.local
