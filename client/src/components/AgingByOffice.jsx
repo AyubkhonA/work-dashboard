@@ -1,69 +1,55 @@
-import React, { useState } from 'react';
-import { money, money0, officeName } from '../lib/format';
+import React from 'react';
+import { money0, officeName } from '../lib/format';
 
-// 3 buckets only (Current dropped; 61-90 and 90+ merged into 61-90+)
-const BUCKETS = [
-  { key: 'd1_30', label: '1–30', color: '#5EB95C' },
-  { key: 'd31_60', label: '31–60', color: '#DEC141' },
-  { key: 'd61plus', label: '61–90+', color: '#D04F3A' },
+// heatmap columns — cell brightness encodes dollars outstanding in that bucket
+const COLS = [
+  { key: 'd1_30',   label: '1–30 days',   rgb: '94,185,92',  head: '#5EB95C' },
+  { key: 'd31_60',  label: '31–60 days',  rgb: '222,193,65', head: '#DEC141' },
+  { key: 'd61plus', label: '61–90+ days', rgb: '208,79,58',  head: '#D04F3A' },
 ];
 
 export default function AgingByOffice({ data }) {
-  const rows = (data.ar.officeAging || []).filter((o) => (o.d31_60 + o.d61_90 + o.d90) > 0);
-  const [tip, setTip] = useState(null);
+  // same source rows as before (offices with aging past the 1–30 bucket), ranked by total desc.
+  // current dropped; 61-90 and 90+ merged into 61–90+.
+  const rows = (data.ar.officeAging || [])
+    .filter((o) => (o.d31_60 + o.d61_90 + o.d90) > 0)
+    .map((o) => ({ ...o, d61plus: o.d61_90 + o.d90 }))
+    .sort((a, b) => b.total - a.total);
 
-  const showTip = (e, office, s, v, pct) =>
-    setTip({ x: e.clientX, y: e.clientY, office, label: s.label, color: s.color, v, pct });
+  const maxBucket = Math.max(...rows.flatMap((o) => [o.d1_30, o.d31_60, o.d61plus]), 1);
+  const cellBg = (v, rgb) => `rgba(${rgb}, ${(0.08 + Math.min(v / maxBucket, 1) * 0.8).toFixed(3)})`;
 
   return (
     <div className="panel">
       <div className="panel-b">
-        {/* legend */}
-        <div className="aging-leg" style={{ marginBottom: 18 }}>
-          {BUCKETS.map((s) => (
-            <div className="it" key={s.key}>
-              <span className="sw" style={{ background: s.color }} />
-              <span>{s.label} days</span>
-            </div>
+        <div className="heatmap">
+          {/* header */}
+          <div className="hm-head">Office</div>
+          {COLS.map((c) => (
+            <div className="hm-head" key={c.key} style={{ color: c.head, textAlign: 'center' }}>{c.label}</div>
+          ))}
+          <div className="hm-head" style={{ textAlign: 'right' }}>Total</div>
+
+          {/* one row per office */}
+          {rows.map((o, i) => (
+            <React.Fragment key={o.office}>
+              <div className="hm-office"><span className="idx">{i + 1}</span> {officeName(o.office)}</div>
+              {COLS.map((c) => {
+                const v = o[c.key];
+                const empty = !(v > 0);
+                return (
+                  <div className="hm-cell" key={c.key}
+                    style={empty ? { background: 'transparent', color: 'var(--txt-faint)' } : { background: cellBg(v, c.rgb) }}>
+                    {empty ? '·' : money0(v)}
+                  </div>
+                );
+              })}
+              <div className="hm-total">{money0(o.total)}</div>
+            </React.Fragment>
           ))}
         </div>
-
-        {/* one stacked bar per office — 1-30 / 31-60 / 61-90+ proportions */}
-        <div className="agbars">
-          {rows.map((o, i) => {
-            const vals = { d1_30: o.d1_30, d31_60: o.d31_60, d61plus: o.d61_90 + o.d90 };
-            const sum = vals.d1_30 + vals.d31_60 + vals.d61plus;
-            return (
-              <div className="agrow" key={o.office}>
-                <span className="nm"><span className="idx">{i + 1}</span>{officeName(o.office)}</span>
-                <div className="agtrack">
-                  {BUCKETS.map((s) => {
-                    const v = vals[s.key];
-                    if (!(v > 0)) return null;
-                    const pct = sum ? (v / sum) * 100 : 0;
-                    return (
-                      <div key={s.key}
-                        onMouseMove={(e) => showTip(e, o.office, s, v, pct)}
-                        onMouseLeave={() => setTip(null)}
-                        style={{ width: `${pct}%`, background: s.color }}>
-                        {pct >= 12 ? `${pct.toFixed(1)}%` : ''}
-                      </div>
-                    );
-                  })}
-                </div>
-                <span className="amt">{money0(o.total)}</span>
-              </div>
-            );
-          })}
-        </div>
+        <div className="hm-caption">Brighter cell = more dollars outstanding in that bucket · &quot;·&quot; = none.</div>
       </div>
-
-      {tip && (
-        <div className="ag-tooltip" style={{ left: tip.x + 14, top: tip.y + 14 }}>
-          <span className="ag-tip-dot" style={{ background: tip.color }} />
-          <span>{tip.label} days — <b>{money(tip.v)}</b> · {tip.pct.toFixed(1)}%</span>
-        </div>
-      )}
     </div>
   );
 }

@@ -15,6 +15,11 @@ export default function Dashboard({ data, onReset, role = 'worker', onLogout, mo
 
   return (
     <div className="term">
+      {/* fixed background photo + dark overlay; frosted panels blur this through */}
+      <div className="bg-layer">
+        <img src="/ortho-bg.webp" alt="" className="bg-image" />
+        <div className="bg-overlay" />
+      </div>
       <div className="topbar">
         <div className="brand">
           ADVANCED ORTHO LAB <span className="slash">//</span> <span className="sub">MONTHLY STATEMENT</span>
@@ -54,7 +59,7 @@ export default function Dashboard({ data, onReset, role = 'worker', onLogout, mo
         <section className="sec">
           <div className="sec-h">
             <span className="t">AR Aging by Office</span>
-            <span className="meta">all months · from AR report</span>
+            <span className="meta">intensity = dollars outstanding per bucket</span>
           </div>
           <AgingByOffice data={data} />
         </section>

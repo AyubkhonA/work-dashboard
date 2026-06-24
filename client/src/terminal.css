@@ -1,8 +1,8 @@
 :root {
   --bg:        #0a0e14;
-  --bg-panel:  #0f141c;
-  --bg-panel2: #131a24;
-  --bg-row:    #0c1118;
+  --bg-panel:  rgba(15,20,28,0.45);   /* frosted: ~45% opaque so the bg photo shows through */
+  --bg-panel2: rgba(19,26,36,0.45);
+  --bg-row:    rgba(12,17,24,0.5);
   --line:      #1c2530;
   --line-soft: #161d27;
   --txt:       #d7e0ea;
@@ -14,6 +14,11 @@
   --red:       #ff5c6c;
   --cyan:      #4cc2ff;
   --violet:    #b78cff;
+
+  /* visual-refresh tokens */
+  --blur: blur(13px) saturate(1.2);
+  --elev: 0 22px 50px -16px rgba(0,0,0,0.82), 0 6px 16px rgba(0,0,0,0.55);
+
   --mono: ui-monospace, "SF Mono", "JetBrains Mono", "Menlo", "Consolas", monospace;
   --sans: -apple-system, BlinkMacSystemFont, "Segoe UI", Inter, Roboto, sans-serif;
 }
@@ -37,12 +42,21 @@ body {
 
 /* ---------- shell ---------- */
 .term {
+  position: relative;
   min-height: 100vh;
   display: flex;
   flex-direction: column;
+  background: transparent;   /* the fixed photo layer shows through the gaps */
+}
+
+/* ---------- background photo layer ---------- */
+.bg-layer { position: fixed; inset: 0; z-index: 0; overflow: hidden; background: #0a0e14; }
+.bg-image { width: 100%; height: 100%; object-fit: cover; display: block; }
+.bg-overlay {
+  position: absolute; inset: 0; pointer-events: none;
   background:
-    radial-gradient(1200px 600px at 80% -10%, rgba(76,194,255,0.05), transparent 60%),
-    var(--bg);
+    linear-gradient(180deg, rgba(8,11,17,0.86), rgba(8,11,17,0.92) 45%, rgba(8,11,17,0.96)),
+    radial-gradient(1200px 600px at 80% -10%, rgba(76,194,255,0.06), transparent 60%);
 }
 
 /* ---------- top bar ---------- */
@@ -153,7 +167,7 @@ body {
 .tab.active { color: var(--cyan); border-bottom-color: var(--cyan); }
 
 /* ---------- single-page sections ---------- */
-.page { width: 100%; }
+.page { width: 100%; position: relative; z-index: 1; }
 .sec {
   max-width: 1760px;
   margin: 0 auto;
@@ -300,6 +314,12 @@ body {
   border-radius: 8px;
   overflow: hidden;
 }
+/* frosted glass + floating elevation on every panel and KPI card */
+.panel, .kpi {
+  box-shadow: var(--elev);
+  -webkit-backdrop-filter: var(--blur);
+  backdrop-filter: var(--blur);
+}
 .panel-h {
   display: flex; align-items: center; justify-content: space-between;
   padding: 11px 16px;
@@ -315,7 +335,7 @@ body {
 .kpi {
   background: var(--bg-panel);
   border: 1px solid var(--line);
-  border-left: 2px solid var(--accent, var(--cyan));
+  border-left: 3px solid var(--accent, var(--cyan));
   border-radius: 8px;
   padding: 14px 16px;
 }
@@ -384,6 +404,33 @@ table.data tbody tr:hover td { color: #fff; }
 .bartrack { height: 16px; background: var(--bg-row); border-radius: 3px; overflow: hidden; border: 1px solid var(--line-soft); }
 .barfill { height: 100%; border-radius: 3px 0 0 3px; background: linear-gradient(90deg, var(--green-dim), var(--green)); }
 .barrow .amt { text-align: right; font-family: var(--mono); font-size: 12px; color: var(--txt); }
+
+/* ---------- AR Aging by Office — heatmap matrix ---------- */
+.heatmap {
+  display: grid;
+  grid-template-columns: minmax(200px, 1fr) 150px 150px 150px 110px;
+  gap: 5px 12px;
+  align-items: center;
+}
+.hm-head {
+  font-size: 10px; text-transform: uppercase; letter-spacing: 0.08em;
+  color: var(--txt-faint); font-family: var(--mono);
+}
+.hm-office {
+  font-size: 12.5px; color: var(--txt);
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+}
+.hm-office .idx { color: var(--txt-faint); font-family: var(--mono); font-size: 11px; margin-right: 3px; }
+.hm-cell {
+  font-family: var(--mono); font-size: 11.5px; text-align: center;
+  padding: 7px 6px; border-radius: 4px; color: #eef3ee;
+}
+.hm-total { font-family: var(--mono); font-size: 12px; font-weight: 700; color: var(--txt); text-align: right; }
+.hm-caption { margin-top: 14px; font-size: 11px; color: var(--txt-faint); font-family: var(--mono); }
+@media (max-width: 720px) {
+  .heatmap { grid-template-columns: minmax(120px, 1fr) 1fr 1fr 1fr 80px; gap: 4px 6px; }
+  .hm-cell { font-size: 10.5px; padding: 6px 3px; }
+}
 
 /* ---------- aging-by-office stacked bars ---------- */
 /* centred aging list */
