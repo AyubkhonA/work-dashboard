@@ -29,17 +29,20 @@ export default function Upload({ onReady, sample, onLogout }) {
     setBusy(true);
     setError('');
     try {
-      const rows = async (file) => readWorkbookRows(new Uint8Array(await file.arrayBuffer()));
+      const readFile = async (file, label) => {
+        try { return readWorkbookRows(new Uint8Array(await file.arrayBuffer())); }
+        catch { throw new Error(`Couldn't read the ${label} file — is it a valid .xlsx export?`); }
+      };
       const data = buildStatement({
-        premierRows: await rows(files.premier),
-        childrenRows: await rows(files.children),
-        arRows: await rows(files.ar),
+        premierRows: await readFile(files.premier, 'Premier invoices'),
+        childrenRows: await readFile(files.children, "Children's invoices"),
+        arRows: await readFile(files.ar, 'AR aging'),
         month,
         year: Number(year),
       });
       if (!data.offices.length) throw new Error('No offices found in the invoice files — are these the right exports?');
       if (!data.ar.total) throw new Error('No open balances found in the AR file — check the aging report.');
-      onReady(data);
+      onReady(data); // data.warnings (e.g. contamination) surface as a banner on the dashboard
     } catch (e) {
       setError(e.message || 'Failed to parse the files.');
     } finally {

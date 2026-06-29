@@ -57,7 +57,7 @@ export default function ARHero({ data }) {
           <div className="panel-b">
             <div className="barlist barscroll">
               {offices.map((o, i) => (
-                <div className="barrow" key={o.office}>
+                <div className="barrow" key={`${o.office}-${i}`}>
                   <span className="nm"><span className="idx">{i + 1}</span> {officeName(o.office)}</span>
                   <div className="bartrack"><div className="barfill" style={{ width: `${(o.balance / max) * 100}%` }} /></div>
                   <span className="amt">{money0(o.balance)}</span>
@@ -104,7 +104,7 @@ export default function ARHero({ data }) {
                     {buckets.map((b) => (
                       <div className="it" key={b.bucket}>
                         <span className="sw" style={{ background: BUCKET_GRADIENT[b.bucket] || 'var(--txt-dim)' }} />
-                        <span>{b.bucket} days · {money0(b.balance)}</span>
+                        <span>{b.bucket === 'Current' ? 'Current' : `${b.bucket} days`} · {money0(b.balance)}</span>
                       </div>
                     ))}
                   </div>

@@ -10,6 +10,7 @@ export const int = (n) => (n ?? 0).toLocaleString('en-US');
 
 // short company tag from office name
 export const tagOf = (office) => {
+  if (typeof office !== 'string') return '—';
   if (office.startsWith('Sedation')) return 'SED';
   if (office.startsWith('Premier')) return 'PREM';
   if (office.startsWith("Children")) return 'CHC';
@@ -17,13 +18,17 @@ export const tagOf = (office) => {
 };
 
 // strip the leading brand words so the table reads cleanly
-export const shortOffice = (office) =>
-  office
+export const shortOffice = (office) => {
+  if (typeof office !== 'string') return office || '';
+  return office
     .replace(/^Premier Orthodontics\s*/, '')
     .replace(/^Children'?s Choice\s*/, '')
     .replace(/^Sedation\s*/, 'Sedation ')
     .trim() || office;
+};
 
 // full office name, with "Orthodontics" abbreviated to "Ortho" to fit (e.g. "Premier Ortho Mission")
-export const officeName = (office) =>
-  office.replace(/^Premier Orthodontics\s+/, 'Premier Ortho ');
+export const officeName = (office) => {
+  if (typeof office !== 'string') return office || '';
+  return office.replace(/^Premier Orthodontics\s+/, 'Premier Ortho ');
+};

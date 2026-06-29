@@ -47,7 +47,7 @@ export async function loadFromCloud(monthKey) {
     const r = await fetch(monthKey ? url({ month: monthKey }) : FN);
     if (!r.ok) throw new Error(`HTTP ${r.status}`);
     const j = await r.json();
-    return j.data || null;
+    return (j.data && typeof j.data === 'object') ? j.data : null;
   } catch (e) {
     console.warn('Cloud load failed:', e.message);
     return null;
@@ -59,8 +59,9 @@ export async function listCloudMonths() {
     const r = await fetch(url({ list: '1' }));
     if (!r.ok) throw new Error(`HTTP ${r.status}`);
     const j = await r.json();
-    return j.months || [];
+    return Array.isArray(j.months) ? j.months : [];
   } catch (e) {
+    console.warn('Cloud month list failed:', e.message);
     return [];
   }
 }

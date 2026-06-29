@@ -179,6 +179,13 @@ body {
 
 /* ---------- single-page sections ---------- */
 .page { width: 100%; position: relative; z-index: 1; }
+.warn-banner {
+  max-width: 1760px; margin: 16px auto 0; padding: 11px 16px;
+  display: flex; align-items: flex-start; gap: 10px;
+  background: rgba(240,180,41,0.10); border: 1px solid rgba(240,180,41,0.4);
+  border-radius: 8px; color: var(--amber); font-size: 12.5px; line-height: 1.5;
+}
+.warn-banner .wb-icon { flex: none; }
 .sec {
   max-width: 1760px;
   margin: 0 auto;

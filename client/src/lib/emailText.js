@@ -11,7 +11,10 @@ const readableDate = (iso) => {
 };
 
 export function buildEmailText(data) {
-  const { month, year, billing, summary, ar } = data;
+  if (!data) return '';
+  const { month, year, billing } = data;
+  const summary = data.summary || {};
+  const ar = data.ar || {};
   const prem = [...(billing?.premier?.offices || [])].sort((a, b) => b.withTax - a.withTax);
   const child = [...(billing?.children?.offices || [])].sort((a, b) => b.withTax - a.withTax);
   const line = (o) => `${o.office} — ${moneyPlain(o.withTax)}`;

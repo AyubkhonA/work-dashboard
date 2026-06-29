@@ -4,11 +4,12 @@ import AgingByOffice from '../components/AgingByOffice';
 import ExportExcel from '../components/ExportExcel';
 import EmailSummary from '../components/EmailSummary';
 
-export default function Dashboard({ data, onReset, role = 'worker', onLogout, months, currentKey, onSelectMonth, loadingMonth }) {
+export default function Dashboard({ data, onReset, role = 'worker', onLogout, months, currentKey, onSelectMonth, loadingMonth, loadingKey, monthError }) {
   const isBoss = role === 'boss';
 
   // month dropdown: list every saved month, making sure the current one is present
-  const curOpt = { key: currentKey, label: `${data.month} ${data.year}` };
+  const curOpt = { key: currentKey, label: `${data.month || ''} ${data.year || ''}`.trim() };
+  const warnings = Array.isArray(data.warnings) ? data.warnings : [];
   const monthOpts = (months && months.length)
     ? (months.some((m) => m.key === currentKey) ? months : [curOpt, ...months])
     : [curOpt];
@@ -27,13 +28,14 @@ export default function Dashboard({ data, onReset, role = 'worker', onLogout, mo
         {onSelectMonth && monthOpts.length > 1 ? (
           <label className="month-nav">
             <span className="month-nav-label">MONTH</span>
-            <select className="month-select" value={currentKey} onChange={(e) => onSelectMonth(e.target.value)}>
+            <select className="month-select" value={loadingMonth && loadingKey ? loadingKey : currentKey} onChange={(e) => onSelectMonth(e.target.value)}>
               {monthOpts.map((m) => <option key={m.key} value={m.key}>{m.label}</option>)}
             </select>
             {loadingMonth && <span className="month-loading">loading…</span>}
+            {monthError && <span className="month-loading" style={{ color: 'var(--red)' }}>{monthError}</span>}
           </label>
         ) : (
-          <div className="period">{data.month.toUpperCase()} {data.year}</div>
+          <div className="period">{(data.month || '').toUpperCase()} {data.year}</div>
         )}
         <div className="live">
           <span className="dot" style={isBoss ? { background: 'var(--cyan)', boxShadow: '0 0 8px var(--cyan)' } : undefined} />
@@ -46,11 +48,17 @@ export default function Dashboard({ data, onReset, role = 'worker', onLogout, mo
       </div>
 
       <main className="page">
+        {warnings.length > 0 && (
+          <div className="warn-banner" role="alert">
+            <span className="wb-icon">⚠</span>
+            <span>{warnings.join(' ')}</span>
+          </div>
+        )}
         {/* 1 — Accounts Receivable */}
         <section className="sec">
           <div className="sec-h">
             <span className="t">Accounts Receivable</span>
-            <span className="meta">as of {data.ar.asOf} · {data.ar.openInvoices} open invoices</span>
+            <span className="meta">as of {data.ar?.asOf || 'N/A'} · {data.ar?.openInvoices ?? 0} open invoices</span>
           </div>
           <ARHero data={data} />
         </section>
@@ -86,7 +94,7 @@ export default function Dashboard({ data, onReset, role = 'worker', onLogout, mo
       </main>
 
       <div className="foot">
-        ADV-ORTHO-LAB · {data.month} {data.year} · parsed {data.offices.length} offices · {data.ar.openInvoices} open AR invoices · AR as of {data.ar.asOf}
+        ADV-ORTHO-LAB · {data.month} {data.year} · parsed {data.offices?.length ?? 0} offices · {data.ar?.openInvoices ?? 0} open AR invoices · AR as of {data.ar?.asOf || 'N/A'}
       </div>
     </div>
   );

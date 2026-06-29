@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useRef } from 'react';
 import './terminal.css';
 import sample from './data/may2026.json';
 import Upload from './screens/Upload';
@@ -8,60 +8,74 @@ import { saveToCloud, loadFromCloud, listCloudMonths, verifyKey } from './lib/cl
 
 const KEY_LS = 'ortho_upload_key';
 const monthKey = (d) => (d ? `${d.year}-${d.month}` : '');
+// guard against malformed cached/cloud payloads crashing the dashboard render
+const validStatement = (d) =>
+  !!(d && typeof d === 'object' && d.month && d.year && Array.isArray(d.offices) && d.summary && d.ar);
 
 // Worker side: gated behind the upload password, then upload + result. Upload lives ONLY here.
 function WorkerView() {
-  const [authKey, setAuthKey] = useState(() => localStorage.getItem(KEY_LS) || '');
-  const [verified, setVerified] = useState(() => !!localStorage.getItem(KEY_LS)); // optimistic
+  const [authKey, setAuthKey] = useState('');
+  // 'checking' = verifying a stored key with the server; 'in' = unlocked; 'out' = show login.
+  // No optimistic unlock: a forged localStorage key never renders the app before the server confirms.
+  const [status, setStatus] = useState(() => (localStorage.getItem(KEY_LS) ? 'checking' : 'out'));
 
-  // Re-confirm the stored password with the server (handles a changed password).
   useEffect(() => {
-    if (!authKey) return undefined;
+    const stored = localStorage.getItem(KEY_LS);
+    if (!stored) return undefined;
     let alive = true;
-    verifyKey(authKey).then((res) => {
-      // only sign out on an explicit "wrong" (password changed); ignore null = offline/unreachable
-      if (!alive || res !== false) return;
-      localStorage.removeItem(KEY_LS);
-      setAuthKey('');
-      setVerified(false);
+    verifyKey(stored).then((res) => {
+      if (!alive) return;
+      if (res === false) { localStorage.removeItem(KEY_LS); setStatus('out'); }       // wrong/changed password
+      else { setAuthKey(stored); setStatus('in'); }                                   // ok, or offline (res===null)
     });
     return () => { alive = false; };
-  }, []); // eslint-disable-line react-hooks/exhaustive-deps
+  }, []);
 
-  const logout = () => { localStorage.removeItem(KEY_LS); setAuthKey(''); setVerified(false); };
+  const logout = () => { localStorage.removeItem(KEY_LS); setAuthKey(''); setStatus('out'); };
 
-  if (!verified) return <LoginGate onUnlock={(k) => { setAuthKey(k); setVerified(true); }} />;
+  if (status === 'checking') return <Splash text="Unlocking…" />;
+  if (status !== 'in') return <LoginGate onUnlock={(k) => { setAuthKey(k); setStatus('in'); }} />;
   return <WorkerApp uploadKey={authKey} onLogout={logout} />;
 }
 
 function WorkerApp({ uploadKey, onLogout }) {
-  const [data, setData] = useState(() => loadStatement());
+  const [data, setData] = useState(() => { const d = loadStatement(); return validStatement(d) ? d : null; });
   const [months, setMonths] = useState([]);
   const [loadingMonth, setLoadingMonth] = useState(false);
+  const [loadingKey, setLoadingKey] = useState('');
+  const [monthError, setMonthError] = useState('');
+  const mounted = useRef(true);
+  useEffect(() => () => { mounted.current = false; }, []);
 
   const refreshMonths = useCallback(() => {
-    listCloudMonths().then((list) => setMonths(list || []));
+    listCloudMonths().then((list) => { if (mounted.current) setMonths(list); });
   }, []);
   useEffect(() => { refreshMonths(); }, [refreshMonths]);
 
   const onReady = (d) => {
     saveStatement(d);            // local (offline / instant)
     setData(d);                  // show immediately
-    // share with the boss (cross-device, password-signed); refresh the month list after
-    saveToCloud(d, uploadKey).then(() => refreshMonths());
+    // share with the boss (cross-device, password-signed); refresh the list only on a real save
+    saveToCloud(d, uploadKey).then((res) => { if (res && res.ok) refreshMonths(); });
   };
 
   const selectMonth = (key) => {
     if (!key || key === monthKey(data)) return;
-    setLoadingMonth(true);
-    loadFromCloud(key).then((d) => { if (d) setData(d); setLoadingMonth(false); });
+    setLoadingMonth(true); setLoadingKey(key); setMonthError('');
+    loadFromCloud(key).then((d) => {
+      if (!mounted.current) return;
+      setLoadingMonth(false);
+      if (validStatement(d)) setData(d);
+      else setMonthError('Could not load that month — try again.');
+    });
   };
 
   if (!data) return <Upload onReady={onReady} sample={sample} onLogout={onLogout} />;
   return (
     <Dashboard
       data={data} role="worker" onReset={() => setData(null)} onLogout={onLogout}
-      months={months} currentKey={monthKey(data)} onSelectMonth={selectMonth} loadingMonth={loadingMonth}
+      months={months} currentKey={monthKey(data)} onSelectMonth={selectMonth}
+      loadingMonth={loadingMonth} loadingKey={loadingKey} monthError={monthError}
     />
   );
 }
@@ -117,18 +131,27 @@ function BossView() {
   const [data, setData] = useState(undefined); // undefined = loading
   const [months, setMonths] = useState([]);
   const [loadingMonth, setLoadingMonth] = useState(false);
+  const [loadingKey, setLoadingKey] = useState('');
+  const [monthError, setMonthError] = useState('');
+  const mounted = useRef(true);
 
   useEffect(() => {
-    let alive = true;
-    loadFromCloud().then((d) => { if (alive) setData(d || loadStatement() || null); });
-    listCloudMonths().then((list) => { if (alive) setMonths(list || []); });
-    return () => { alive = false; };
+    mounted.current = true;
+    // boss shows ONLY what the worker published to the cloud — never the local worker cache
+    loadFromCloud().then((d) => { if (mounted.current) setData(validStatement(d) ? d : null); });
+    listCloudMonths().then((list) => { if (mounted.current) setMonths(list); });
+    return () => { mounted.current = false; };
   }, []);
 
   const selectMonth = (key) => {
     if (!key || key === monthKey(data)) return;
-    setLoadingMonth(true);
-    loadFromCloud(key).then((d) => { if (d) setData(d); setLoadingMonth(false); });
+    setLoadingMonth(true); setLoadingKey(key); setMonthError('');
+    loadFromCloud(key).then((d) => {
+      if (!mounted.current) return;
+      setLoadingMonth(false);
+      if (validStatement(d)) setData(d);
+      else setMonthError('Could not load that month — try again.');
+    });
   };
 
   if (data === undefined) return <Splash text="Loading the latest statement…" />;
@@ -136,7 +159,8 @@ function BossView() {
   return (
     <Dashboard
       data={data} role="boss"
-      months={months} currentKey={monthKey(data)} onSelectMonth={selectMonth} loadingMonth={loadingMonth}
+      months={months} currentKey={monthKey(data)} onSelectMonth={selectMonth}
+      loadingMonth={loadingMonth} loadingKey={loadingKey} monthError={monthError}
     />
   );
 }
