@@ -1,8 +1,8 @@
 :root {
   --bg:        #0a0e14;
-  --bg-panel:  rgba(15,20,28,0.45);   /* frosted: ~45% opaque so the bg photo shows through */
-  --bg-panel2: rgba(19,26,36,0.45);
-  --bg-row:    rgba(12,17,24,0.5);
+  --bg-panel:  rgba(15,20,28,0.62);   /* translucent over the bg photo (no live blur — perf) */
+  --bg-panel2: rgba(19,26,36,0.62);
+  --bg-row:    rgba(12,17,24,0.6);
   --line:      #1c2530;
   --line-soft: #161d27;
   --txt:       #d7e0ea;
@@ -332,12 +332,8 @@ body {
   border-radius: 8px;
   overflow: hidden;
 }
-/* frosted glass + floating elevation on every panel and KPI card */
-.panel, .kpi {
-  box-shadow: var(--elev);
-  -webkit-backdrop-filter: var(--blur);
-  backdrop-filter: var(--blur);
-}
+/* floating elevation on every panel and KPI card (no backdrop-filter — it janked scrolling) */
+.panel, .kpi { box-shadow: var(--elev); }
 .panel-h {
   display: flex; align-items: center; justify-content: space-between;
   padding: 11px 16px;

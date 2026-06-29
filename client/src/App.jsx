@@ -55,8 +55,9 @@ function WorkerApp({ uploadKey, onLogout }) {
   const onReady = (d) => {
     saveStatement(d);            // local (offline / instant)
     setData(d);                  // show immediately
-    // share with the boss (cross-device, password-signed); refresh the list only on a real save
-    saveToCloud(d, uploadKey).then((res) => { if (res && res.ok) refreshMonths(); });
+    // share with the boss (cross-device, password-signed); refresh the list only on a real save.
+    // a delayed second refresh catches up with eventual-consistency edge cache.
+    saveToCloud(d, uploadKey).then((res) => { if (res && res.ok) { refreshMonths(); setTimeout(refreshMonths, 5000); } });
   };
 
   const selectMonth = (key) => {

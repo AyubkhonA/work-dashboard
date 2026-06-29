@@ -1,5 +1,4 @@
 import React, { useState } from 'react';
-import { downloadStatement, buildCompanyWorkbook } from '../lib/exportStatement';
 
 async function downloadWb(wb, name) {
   const buf = await wb.xlsx.writeBuffer();
@@ -21,6 +20,8 @@ export default function ExportExcel({ data }) {
   const dl = async (which) => {
     setBusy(which);
     try {
+      // lazy-load ExcelJS only when the user actually exports — keeps it out of the initial bundle
+      const { downloadStatement, buildCompanyWorkbook } = await import('../lib/exportStatement');
       if (which === 'both') await downloadStatement(data, month, year);
       else if (which === 'premier') await downloadWb(buildCompanyWorkbook(data.billing.premier.offices, 'premier', month, year), `Prem${month}${year}.xlsx`);
       else if (which === 'children') await downloadWb(buildCompanyWorkbook(data.billing.children.offices, 'children', month, year), `Children_s${month}${year}.xlsx`);

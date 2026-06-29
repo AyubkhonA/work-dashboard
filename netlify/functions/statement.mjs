@@ -35,7 +35,10 @@ export default async (req) => {
   if (req.method === 'OPTIONS') return new Response(null, { status: 204, headers: CORS }); // 204 must have a null body
 
   const PASS = (process.env.UPLOAD_PASSWORD || '').trim();
-  const store = getStore({ name: 'statements', consistency: 'strong' });
+  // eventual consistency: reads come from the edge cache (fast worldwide). A statement is
+  // published once a month, so a few seconds of read staleness after an upload is fine —
+  // and it removes the ~1s origin round-trip that made the boss view lag from the US.
+  const store = getStore({ name: 'statements', consistency: 'eventual' });
 
   if (req.method === 'POST') {
     let body;
